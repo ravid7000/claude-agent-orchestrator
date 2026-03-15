@@ -1,0 +1,56 @@
+{
+  "name": "claude-agent-orchestrator",
+  "version": "0.1.0",
+  "description": "Parallel Claude agent orchestrator — spawns multiple Claude Code CLI sub-agents to fix features/bugs in isolated git workspaces and open PRs",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "orchestrate": "./dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist/",
+    "prepublishOnly": "npm run clean && npm run build && npm run typecheck"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.54.0",
+    "@clack/prompts": "^0.9.1",
+    "commander": "^13.1.0",
+    "execa": "^9.6.0",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "claude",
+    "anthropic",
+    "agent",
+    "orchestrator",
+    "ai",
+    "automation",
+    "git"
+  ],
+  "license": "MIT"
+}
