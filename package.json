@@ -1,6 +1,6 @@
 {
   "name": "claude-agent-orchestrator",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Parallel Claude agent orchestrator — spawns multiple Claude Code CLI sub-agents to fix features/bugs in isolated git workspaces and open PRs",
   "type": "module",
   "main": "dist/index.js",
@@ -54,5 +54,10 @@
     "automation",
     "git"
   ],
+  "author": "Ravi Dhiman",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ravid7000/claude-agent-orchestrator/"
+  },
   "license": "MIT"
 }
