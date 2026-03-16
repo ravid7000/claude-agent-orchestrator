@@ -1,6 +1,6 @@
 {
   "name": "claude-agent-orchestrator",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Parallel Claude agent orchestrator — spawns multiple Claude Code CLI sub-agents to fix features/bugs in isolated git workspaces and open PRs",
   "type": "module",
   "main": "dist/index.js",

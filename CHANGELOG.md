@@ -1,5 +1,11 @@
 # claude-agent-orchestrator
 
+## 0.0.5
+
+### Patch Changes
+
+- Remove sourcemap files from the build
+
 ## 0.0.4
 
 ### Patch Changes
