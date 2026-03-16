@@ -1,63 +1,91 @@
-import fs from 'fs';
-import path from 'path';
-import { execa } from 'execa';
-import Anthropic from '@anthropic-ai/sdk';
-import { z } from 'zod';
+import fs from "fs";
+import path from "path";
+import { execa } from "execa";
+import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
 import {
   type OrchestratorConfig,
   type DecompositionPlan,
   type SubTask,
   PlannerError,
-} from './types.js';
+} from "./types.js";
 
 // ─── Repo Context Collection ───────────────────────────────────────────────
 
 const KEY_FILES = [
-  'package.json',
-  'README.md',
-  'readme.md',
-  'tsconfig.json',
-  'go.mod',
-  'requirements.txt',
-  'pyproject.toml',
-  'Makefile',
-  'Cargo.toml',
+  "package.json",
+  "README.md",
+  "readme.md",
+  "tsconfig.json",
+  "go.mod",
+  "requirements.txt",
+  "pyproject.toml",
+  "Makefile",
+  "Cargo.toml",
 ];
 
-const SOURCE_EXTENSIONS = ['.ts', '.js', '.py', '.go', '.rs', '.java', '.rb', '.cs'];
+const SOURCE_EXTENSIONS = [
+  ".ts",
+  ".js",
+  ".py",
+  ".go",
+  ".rs",
+  ".java",
+  ".rb",
+  ".cs",
+];
 
 function readFileTruncated(filePath: string, maxLines: number): string {
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n');
+    const content = fs.readFileSync(filePath, "utf-8");
+    const lines = content.split("\n");
     if (lines.length <= maxLines) return content;
-    return lines.slice(0, maxLines).join('\n') + `\n... (truncated at ${maxLines} lines)`;
+    return (
+      lines.slice(0, maxLines).join("\n") +
+      `\n... (truncated at ${maxLines} lines)`
+    );
   } catch {
-    return '';
+    return "";
   }
 }
 
 async function getFileTree(cwd: string): Promise<string> {
   try {
     const { stdout } = await execa(
-      'find',
-      ['.', '-maxdepth', '3', '-not', '-path', '*/.git/*', '-not', '-path', '*/node_modules/*', '-not', '-path', '*/dist/*', '-not', '-path', '*/.next/*'],
+      "find",
+      [
+        ".",
+        "-maxdepth",
+        "3",
+        "-not",
+        "-path",
+        "*/.git/*",
+        "-not",
+        "-path",
+        "*/node_modules/*",
+        "-not",
+        "-path",
+        "*/dist/*",
+        "-not",
+        "-path",
+        "*/.next/*",
+      ],
       { cwd },
     );
-    const lines = stdout.split('\n').filter(Boolean);
-    if (lines.length <= 200) return lines.join('\n');
-    return lines.slice(0, 200).join('\n') + '\n... (truncated at 200 entries)';
+    const lines = stdout.split("\n").filter(Boolean);
+    if (lines.length <= 200) return lines.join("\n");
+    return lines.slice(0, 200).join("\n") + "\n... (truncated at 200 entries)";
   } catch {
-    return '(could not list files)';
+    return "(could not list files)";
   }
 }
 
 async function getGitLog(cwd: string): Promise<string> {
   try {
-    const { stdout } = await execa('git', ['log', '--oneline', '-10'], { cwd });
+    const { stdout } = await execa("git", ["log", "--oneline", "-10"], { cwd });
     return stdout;
   } catch {
-    return '(no git log available)';
+    return "(no git log available)";
   }
 }
 
@@ -73,7 +101,12 @@ function findSampleSourceFiles(cwd: string, max = 3): string[] {
     }
     for (const entry of entries) {
       if (results.length >= max) break;
-      if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist') continue;
+      if (
+        entry.name.startsWith(".") ||
+        entry.name === "node_modules" ||
+        entry.name === "dist"
+      )
+        continue;
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath, depth + 1);
@@ -105,7 +138,7 @@ export async function collectRepoContext(cwd: string): Promise<string> {
     }
   }
   if (keyFileContents.length > 0) {
-    sections.push(`## Key Files\n${keyFileContents.join('\n\n')}`);
+    sections.push(`## Key Files\n${keyFileContents.join("\n\n")}`);
   }
 
   // Sample source files
@@ -116,14 +149,14 @@ export async function collectRepoContext(cwd: string): Promise<string> {
       const content = readFileTruncated(fp, 80);
       return `### ${rel}\n\`\`\`\n${content}\n\`\`\``;
     });
-    sections.push(`## Sample Source Files\n${sourceContents.join('\n\n')}`);
+    sections.push(`## Sample Source Files\n${sourceContents.join("\n\n")}`);
   }
 
   // Git log
   const gitLog = await getGitLog(cwd);
   sections.push(`## Recent Commits\n\`\`\`\n${gitLog}\n\`\`\``);
 
-  return sections.join('\n\n');
+  return sections.join("\n\n");
 }
 
 // ─── JSON Parsing ──────────────────────────────────────────────────────────
@@ -160,8 +193,8 @@ function extractJson(text: string): unknown {
   }
 
   // 3. Find first { to last }
-  const firstBrace = text.indexOf('{');
-  const lastBrace = text.lastIndexOf('}');
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace > firstBrace) {
     try {
       return JSON.parse(text.slice(firstBrace, lastBrace + 1));
@@ -180,8 +213,10 @@ export class Planner {
 
   constructor(private config: OrchestratorConfig) {
     this.client = new Anthropic({
-      apiKey: config.apiKey,
+      ...(config.apiKey ? { apiKey: config.apiKey } : {}),
+      ...(config.authToken ? { authToken: config.authToken } : {}),
       ...(config.baseUrl ? { baseURL: config.baseUrl } : {}),
+      ...(config.timeout ? { timeout: config.timeout } : {}),
     });
   }
 
@@ -222,15 +257,15 @@ ${repoContext}
     let responseText: string;
     try {
       const response = await this.client.messages.create({
-        model: this.config.model,
+        model: process.env.ANTHROPIC_MODEL || this.config.model,
         max_tokens: 4096,
         system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
+        messages: [{ role: "user", content: userPrompt }],
       });
 
-      const textBlock = response.content.find((b) => b.type === 'text');
-      if (!textBlock || textBlock.type !== 'text') {
-        throw new PlannerError('Planner returned no text content');
+      const textBlock = response.content.find((b) => b.type === "text");
+      if (!textBlock || textBlock.type !== "text") {
+        throw new PlannerError("Planner returned no text content");
       }
       responseText = textBlock.text;
     } catch (err) {
@@ -242,14 +277,21 @@ ${repoContext}
     const parsed = extractJson(responseText);
     if (!parsed) {
       throw new PlannerError(
-        `Could not extract valid JSON from planner response.\nRaw response:\n${responseText.slice(0, 500)}`,
+        `Could not extract valid JSON from planner response.\nRaw response:\n${responseText.slice(
+          0,
+          500,
+        )}`,
       );
     }
 
     const validated = PlanSchema.safeParse(parsed);
     if (!validated.success) {
-      const issues = validated.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
-      throw new PlannerError(`Planner returned invalid plan structure:\n${issues}`);
+      const issues = validated.error.issues
+        .map((i) => `  ${i.path.join(".")}: ${i.message}`)
+        .join("\n");
+      throw new PlannerError(
+        `Planner returned invalid plan structure:\n${issues}`,
+      );
     }
 
     const plan = validated.data as DecompositionPlan;

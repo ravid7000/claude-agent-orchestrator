@@ -176,6 +176,12 @@ describe('Planner.decompose', () => {
     // Default: empty find + empty git log
     mockExeca
       .mockResolvedValue(execaResult(''));
+    // Prevent real env vars from leaking into model selection
+    vi.stubEnv('ANTHROPIC_MODEL', '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   function makeMessage(text: string) {
@@ -339,6 +345,18 @@ describe('Planner.decompose', () => {
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 4096,
       }),
+    );
+  });
+
+  it('ANTHROPIC_MODEL env var overrides config model', async () => {
+    vi.stubEnv('ANTHROPIC_MODEL', 'claude-custom-model');
+    mockCreate.mockResolvedValueOnce(makeMessage(VALID_PLAN_JSON));
+
+    const planner = new Planner(makeConfig({ model: 'claude-opus-4-6' }));
+    await planner.decompose('task', '/repo');
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'claude-custom-model' }),
     );
   });
 

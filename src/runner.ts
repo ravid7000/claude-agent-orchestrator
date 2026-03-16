@@ -112,8 +112,11 @@ export async function runSubAgent(
   }
 
   const env: Record<string, string> = { ...process.env as Record<string, string> };
+  if (config.authToken) {
+    env['ANTHROPIC_AUTH_TOKEN'] = config.authToken;
+  }
   if (config.apiKey) {
-    env['ANTHROPIC_AUTH_TOKEN'] = config.apiKey;
+    env['ANTHROPIC_API_KEY'] = config.apiKey;
   }
   if (config.baseUrl) {
     env['ANTHROPIC_BASE_URL'] = config.baseUrl;

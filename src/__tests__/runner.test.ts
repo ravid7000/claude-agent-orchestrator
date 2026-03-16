@@ -278,14 +278,24 @@ describe('runSubAgent — CLI args', () => {
     expect(args).not.toContain('--max-budget-usd');
   });
 
-  it('sets ANTHROPIC_AUTH_TOKEN in subprocess env', async () => {
+  it('sets ANTHROPIC_AUTH_TOKEN in subprocess env from authToken', async () => {
+    const prText = makeAssistantEvent('PR_URL: https://github.com/org/repo/pull/1\n');
+    mockExeca.mockReturnValueOnce(createMockSubprocess({ stdoutChunks: [prText] }));
+
+    await runSubAgent(makeTask(), makeWorkspace(), makeConfig({ authToken: 'sk-ant-auth' }), vi.fn());
+
+    const [, , opts] = mockExeca.mock.calls[0] as unknown as [string, string[], Record<string, unknown>];
+    expect((opts as any)?.env?.['ANTHROPIC_AUTH_TOKEN']).toBe('sk-ant-auth');
+  });
+
+  it('sets ANTHROPIC_API_KEY in subprocess env from apiKey', async () => {
     const prText = makeAssistantEvent('PR_URL: https://github.com/org/repo/pull/1\n');
     mockExeca.mockReturnValueOnce(createMockSubprocess({ stdoutChunks: [prText] }));
 
     await runSubAgent(makeTask(), makeWorkspace(), makeConfig({ apiKey: 'sk-ant-key' }), vi.fn());
 
     const [, , opts] = mockExeca.mock.calls[0] as unknown as [string, string[], Record<string, unknown>];
-    expect((opts as any)?.env?.['ANTHROPIC_AUTH_TOKEN']).toBe('sk-ant-key');
+    expect((opts as any)?.env?.['ANTHROPIC_API_KEY']).toBe('sk-ant-key');
   });
 
   it('sets ANTHROPIC_BASE_URL in subprocess env when configured', async () => {

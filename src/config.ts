@@ -9,8 +9,10 @@ import { ConfigError, type OrchestratorConfig } from './types.js';
 
 const ConfigSchema = z.object({
   apiKey: z.string().optional(),
+  authToken: z.string().optional(),
   baseUrl: z.string().url().optional(),
   model: z.string().default('claude-opus-4-6'),
+  timeout: z.number().int().positive().optional(),
   maxAgents: z.number().int().min(1).max(20).default(5),
   maxBudgetPerAgentUsd: z.number().positive().optional(),
   workspace: z
@@ -137,10 +139,17 @@ export async function loadConfig(
 
   // 4. Env vars win over file-based values
   if (process.env.ANTHROPIC_AUTH_TOKEN) {
-    merged['apiKey'] = process.env.ANTHROPIC_AUTH_TOKEN;
+    merged['authToken'] = process.env.ANTHROPIC_AUTH_TOKEN;
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    merged['apiKey'] = process.env.ANTHROPIC_API_KEY;
   }
   if (process.env.ANTHROPIC_BASE_URL) {
     merged['baseUrl'] = process.env.ANTHROPIC_BASE_URL;
+  }
+  if (process.env.API_TIMEOUT_MS) {
+    const ms = parseInt(process.env.API_TIMEOUT_MS, 10);
+    if (!isNaN(ms) && ms > 0) merged['timeout'] = ms;
   }
 
   // 5. GitHub token from env (use || so empty string falls through to GITHUB_TOKEN)
@@ -160,9 +169,9 @@ export async function loadConfig(
 
   const config = parsed.data as OrchestratorConfig;
 
-  if (!config.apiKey) {
+  if (!config.apiKey && !config.authToken) {
     throw new ConfigError(
-      'No API key found. Set the ANTHROPIC_AUTH_TOKEN environment variable or add apiKey to your config file.',
+      'No API credentials found. Set ANTHROPIC_AUTH_TOKEN or ANTHROPIC_API_KEY, or add authToken/apiKey to your config file.',
     );
   }
 

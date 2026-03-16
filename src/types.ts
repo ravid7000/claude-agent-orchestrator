@@ -2,8 +2,10 @@
 
 export interface OrchestratorConfig {
   apiKey?: string;
+  authToken?: string;
   baseUrl?: string;
   model: string;
+  timeout?: number;
   maxAgents: number;
   maxBudgetPerAgentUsd?: number;
   workspace: {

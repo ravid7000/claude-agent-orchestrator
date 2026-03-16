@@ -14,7 +14,9 @@ beforeEach(() => {
   vi.spyOn(os, 'homedir').mockReturnValue(tmpDir);
   // Clear relevant env vars before each test
   vi.stubEnv('ANTHROPIC_AUTH_TOKEN', '');
+  vi.stubEnv('ANTHROPIC_API_KEY', '');
   vi.stubEnv('ANTHROPIC_BASE_URL', '');
+  vi.stubEnv('API_TIMEOUT_MS', '');
   vi.stubEnv('GH_TOKEN', '');
   vi.stubEnv('GITHUB_TOKEN', '');
 });
@@ -53,10 +55,16 @@ describe('loadConfig', () => {
     await expect(loadConfig(tmpDir)).rejects.toThrow('ANTHROPIC_AUTH_TOKEN');
   });
 
-  it('loads apiKey from ANTHROPIC_AUTH_TOKEN env var', async () => {
+  it('loads authToken from ANTHROPIC_AUTH_TOKEN env var', async () => {
     vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-test');
     const config = await loadConfig(tmpDir);
-    expect(config.apiKey).toBe('sk-ant-test');
+    expect(config.authToken).toBe('sk-ant-test');
+  });
+
+  it('loads apiKey from ANTHROPIC_API_KEY env var', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-apikey');
+    const config = await loadConfig(tmpDir);
+    expect(config.apiKey).toBe('sk-ant-apikey');
   });
 
   it('loads baseUrl from ANTHROPIC_BASE_URL env var', async () => {
@@ -64,6 +72,20 @@ describe('loadConfig', () => {
     vi.stubEnv('ANTHROPIC_BASE_URL', 'https://proxy.example.com');
     const config = await loadConfig(tmpDir);
     expect(config.baseUrl).toBe('https://proxy.example.com');
+  });
+
+  it('loads timeout from API_TIMEOUT_MS env var', async () => {
+    vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-test');
+    vi.stubEnv('API_TIMEOUT_MS', '30000');
+    const config = await loadConfig(tmpDir);
+    expect(config.timeout).toBe(30000);
+  });
+
+  it('ignores invalid API_TIMEOUT_MS values', async () => {
+    vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-test');
+    vi.stubEnv('API_TIMEOUT_MS', 'not-a-number');
+    const config = await loadConfig(tmpDir);
+    expect(config.timeout).toBeUndefined();
   });
 
   it('applies default model, maxAgents, workspace type, tmux', async () => {
@@ -83,11 +105,11 @@ describe('loadConfig', () => {
     expect(config.tmux).toBe(false);
   });
 
-  it('env var ANTHROPIC_AUTH_TOKEN overrides apiKey from override object', async () => {
+  it('ANTHROPIC_AUTH_TOKEN sets authToken independently from apiKey override', async () => {
     vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-from-env');
     const config = await loadConfig(tmpDir, { apiKey: 'sk-ant-from-override' });
-    // env var wins
-    expect(config.apiKey).toBe('sk-ant-from-env');
+    expect(config.authToken).toBe('sk-ant-from-env');
+    expect(config.apiKey).toBe('sk-ant-from-override');
   });
 
   it('reads GH_TOKEN env var into github.token', async () => {
@@ -140,12 +162,23 @@ describe('loadConfig', () => {
     expect(config.maxAgents).toBe(4);
   });
 
-  it('env var overrides value from YAML config file', async () => {
+  it('ANTHROPIC_AUTH_TOKEN sets authToken alongside apiKey from YAML', async () => {
     fs.writeFileSync(
       path.join(tmpDir, 'orchestrator.config.yaml'),
       'apiKey: sk-ant-from-yaml\n',
     );
-    vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-env-wins');
+    vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-from-env');
+    const config = await loadConfig(tmpDir);
+    expect(config.authToken).toBe('sk-ant-from-env');
+    expect(config.apiKey).toBe('sk-ant-from-yaml');
+  });
+
+  it('ANTHROPIC_API_KEY env var overrides apiKey from YAML config file', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'orchestrator.config.yaml'),
+      'apiKey: sk-ant-from-yaml\n',
+    );
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-env-wins');
     const config = await loadConfig(tmpDir);
     expect(config.apiKey).toBe('sk-ant-env-wins');
   });
