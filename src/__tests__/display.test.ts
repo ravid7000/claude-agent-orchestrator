@@ -57,9 +57,11 @@ beforeEach(() => {
   vi.stubEnv('TMUX', '');
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
+  // Allow fire-and-forget fs.appendFile calls in writeOutput to flush before cleanup
+  await new Promise<void>((resolve) => setTimeout(resolve, 20));
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
