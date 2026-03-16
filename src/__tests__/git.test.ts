@@ -18,7 +18,7 @@ import {
 const mockExeca = vi.mocked(execa);
 
 function execaResult(stdout: string, stderr = '') {
-  return { stdout, stderr, exitCode: 0 } as ReturnType<typeof execa>;
+  return { stdout, stderr, exitCode: 0 } as unknown as Awaited<ReturnType<typeof execa>>;
 }
 
 beforeEach(() => {

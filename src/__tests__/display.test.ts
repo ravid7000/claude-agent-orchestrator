@@ -16,7 +16,7 @@ const mockExeca = vi.mocked(execa);
 let tmpDir: string;
 
 function execaResult(stdout = '') {
-  return { stdout, stderr: '', exitCode: 0 } as ReturnType<typeof execa>;
+  return { stdout, stderr: '', exitCode: 0 } as unknown as Awaited<ReturnType<typeof execa>>;
 }
 
 function makeTasks(count = 2): SubTask[] {

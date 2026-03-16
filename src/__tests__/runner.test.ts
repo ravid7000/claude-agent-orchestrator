@@ -78,11 +78,11 @@ function createMockSubprocess(options: {
     resolveProc({ exitCode });
   });
 
-  return Object.assign(resultPromise, { stdout, stderr });
+  return Object.assign(resultPromise, { stdout, stderr }) as unknown as ReturnType<typeof execa>;
 }
 
 function ghResult(url: string) {
-  return { stdout: url, stderr: '', exitCode: 0 } as ReturnType<typeof execa>;
+  return { stdout: url, stderr: '', exitCode: 0 } as unknown as Awaited<ReturnType<typeof execa>>;
 }
 
 function makeAssistantEvent(text: string): string {
@@ -284,7 +284,7 @@ describe('runSubAgent — CLI args', () => {
 
     await runSubAgent(makeTask(), makeWorkspace(), makeConfig({ apiKey: 'sk-ant-key' }), vi.fn());
 
-    const [, , opts] = mockExeca.mock.calls[0]!;
+    const [, , opts] = mockExeca.mock.calls[0] as unknown as [string, string[], Record<string, unknown>];
     expect((opts as any)?.env?.['ANTHROPIC_AUTH_TOKEN']).toBe('sk-ant-key');
   });
 
@@ -299,7 +299,7 @@ describe('runSubAgent — CLI args', () => {
       vi.fn(),
     );
 
-    const [, , opts] = mockExeca.mock.calls[0]!;
+    const [, , opts] = mockExeca.mock.calls[0] as unknown as [string, string[], Record<string, unknown>];
     expect((opts as any)?.env?.['ANTHROPIC_BASE_URL']).toBe('https://proxy.example.com');
   });
 
@@ -314,7 +314,7 @@ describe('runSubAgent — CLI args', () => {
       vi.fn(),
     );
 
-    const [, , opts] = mockExeca.mock.calls[0]!;
+    const [, , opts] = mockExeca.mock.calls[0] as unknown as [string, string[], Record<string, unknown>];
     expect((opts as any)?.env?.['GH_TOKEN']).toBe('ghp_mytoken');
   });
 
@@ -329,7 +329,7 @@ describe('runSubAgent — CLI args', () => {
       vi.fn(),
     );
 
-    const [, , opts] = mockExeca.mock.calls[0]!;
+    const [, , opts] = mockExeca.mock.calls[0] as unknown as [string, string[], Record<string, unknown>];
     expect((opts as any)?.cwd).toBe('/custom/workspace/path');
   });
 
@@ -462,7 +462,7 @@ describe('runSubAgent — edge cases', () => {
       stdout.emit('data', prText);
       resolveProc({ exitCode: 0 });
     });
-    const mockProc = Object.assign(resultPromise, { stdout, stderr: null });
+    const mockProc = Object.assign(resultPromise, { stdout, stderr: null }) as unknown as ReturnType<typeof execa>;
     mockExeca.mockReturnValueOnce(mockProc);
 
     const result = await runSubAgent(makeTask(), makeWorkspace(), makeConfig(), vi.fn());
@@ -499,7 +499,7 @@ describe('runSubAgent — edge cases', () => {
     let resolveProc!: (val: any) => void;
     const resultPromise = new Promise<any>((res) => { resolveProc = res; });
     setImmediate(() => resolveProc({ exitCode: 0 }));
-    const mockProc = Object.assign(resultPromise, { stdout: null, stderr: null });
+    const mockProc = Object.assign(resultPromise, { stdout: null, stderr: null }) as unknown as ReturnType<typeof execa>;
     mockExeca
       .mockReturnValueOnce(mockProc)  // claude subprocess (no stdout)
       .mockResolvedValueOnce(ghResult('https://github.com/org/repo/pull/88'));  // gh fallback

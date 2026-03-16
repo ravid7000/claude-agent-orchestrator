@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -28,7 +28,7 @@ const mockExeca = vi.mocked(execa);
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 function execaResult(stdout: string) {
-  return { stdout, stderr: '', exitCode: 0 } as ReturnType<typeof execa>;
+  return { stdout, stderr: '', exitCode: 0 } as unknown as Awaited<ReturnType<typeof execa>>;
 }
 
 function makeConfig(overrides: Partial<OrchestratorConfig> = {}): OrchestratorConfig {
