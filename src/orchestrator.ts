@@ -12,7 +12,7 @@ import { runSubAgent } from './runner.js';
 
 // ─── Concurrency Limiter ───────────────────────────────────────────────────
 
-async function runWithConcurrencyLimit(
+export async function runWithConcurrencyLimit(
   states: AgentState[],
   limit: number,
   fn: (state: AgentState) => Promise<void>,

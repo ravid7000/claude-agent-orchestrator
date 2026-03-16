@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Install, Build & Typecheck
+    name: Install, Test, Build & Typecheck
     runs-on: ubuntu-latest
 
     steps:
@@ -24,6 +24,20 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
 
       - name: Build
         run: npm run build

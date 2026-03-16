@@ -2,6 +2,8 @@
 
 Orchestrate multiple Claude Code CLI agents running **in parallel** to implement features or fix bugs across isolated git branches — each agent commits its work and opens a GitHub PR automatically.
 
+[![CI Status](https://github.com/ravid7000/claude-agent-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/ravid7000/claude-agent-orchestrator/actions/workflows/ci.yml)
+
 ```
 You: "Add dark mode support across the entire UI"
   └─► Claude plans: 3 independent sub-tasks
@@ -45,10 +47,16 @@ The master orchestrator handles only coordination. All actual coding is done by 
 
 ### Authentication
 
-**Claude API key** — the sub-agents need an Anthropic API key:
+**Claude API key** — required. Set `ANTHROPIC_AUTH_TOKEN` in your environment:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_AUTH_TOKEN=sk-ant-...
+```
+
+**Base URL** — optional. Override the Anthropic API endpoint (useful for proxies or self-hosted deployments):
+
+```bash
+export ANTHROPIC_BASE_URL=https://your-proxy.example.com
 ```
 
 **GitHub CLI** — must be logged in to create PRs:
@@ -99,7 +107,7 @@ orchestrate --version
 cd ~/your-project
 
 # 2. Set your API key
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_AUTH_TOKEN=sk-ant-...
 
 # 3. Run the orchestrator
 orchestrate run "add skeleton loading states to all page components"
@@ -182,7 +190,8 @@ orchestrate init
 ```yaml
 # Claude Agent Orchestrator Configuration
 
-# apiKey: "sk-ant-..."   # optional — falls back to ANTHROPIC_API_KEY env var
+# apiKey: "sk-ant-..."   # optional — falls back to ANTHROPIC_AUTH_TOKEN env var
+# baseUrl: "https://..."  # optional — falls back to ANTHROPIC_BASE_URL env var
 model: claude-opus-4-6
 maxAgents: 5
 # maxBudgetPerAgentUsd: 2.0   # optional budget cap per sub-agent
@@ -201,7 +210,7 @@ tmux: true
 
 1. `~/.config/claude-orchestrator/config.json` — global user config
 2. `./orchestrator.config.yaml` or `./orchestrator.config.json` — project config
-3. `ANTHROPIC_API_KEY` environment variable — always overrides `apiKey` in files
+3. `ANTHROPIC_AUTH_TOKEN` env var → overrides `apiKey`; `ANTHROPIC_BASE_URL` env var → overrides `baseUrl`
 4. CLI flags — highest priority
 
 ---
@@ -346,7 +355,7 @@ Runs the full orchestration flow. Returns `OrchestratorResult`:
 ### `No API key found`
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_AUTH_TOKEN=sk-ant-...
 # or add apiKey to orchestrator.config.yaml
 ```
 

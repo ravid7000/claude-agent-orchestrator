@@ -113,7 +113,10 @@ export async function runSubAgent(
 
   const env: Record<string, string> = { ...process.env as Record<string, string> };
   if (config.apiKey) {
-    env['ANTHROPIC_API_KEY'] = config.apiKey;
+    env['ANTHROPIC_AUTH_TOKEN'] = config.apiKey;
+  }
+  if (config.baseUrl) {
+    env['ANTHROPIC_BASE_URL'] = config.baseUrl;
   }
   if (config.github?.token) {
     env['GH_TOKEN'] = config.github.token;

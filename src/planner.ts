@@ -179,7 +179,10 @@ export class Planner {
   private client: Anthropic;
 
   constructor(private config: OrchestratorConfig) {
-    this.client = new Anthropic({ apiKey: config.apiKey });
+    this.client = new Anthropic({
+      apiKey: config.apiKey,
+      ...(config.baseUrl ? { baseURL: config.baseUrl } : {}),
+    });
   }
 
   async decompose(task: string, cwd: string): Promise<DecompositionPlan> {

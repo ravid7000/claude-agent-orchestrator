@@ -24,6 +24,9 @@
     "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "prepublishOnly": "npm run clean && npm run build && npm run typecheck",
     "changeset": "changeset"
   },
@@ -42,8 +45,10 @@
     "@changesets/cli": "^2.30.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.0"
   },
   "keywords": [
     "claude",

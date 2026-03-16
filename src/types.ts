@@ -2,6 +2,7 @@
 
 export interface OrchestratorConfig {
   apiKey?: string;
+  baseUrl?: string;
   model: string;
   maxAgents: number;
   maxBudgetPerAgentUsd?: number;

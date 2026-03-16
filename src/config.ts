@@ -9,6 +9,7 @@ import { ConfigError, type OrchestratorConfig } from './types.js';
 
 const ConfigSchema = z.object({
   apiKey: z.string().optional(),
+  baseUrl: z.string().url().optional(),
   model: z.string().default('claude-opus-4-6'),
   maxAgents: z.number().int().min(1).max(20).default(5),
   maxBudgetPerAgentUsd: z.number().positive().optional(),
@@ -93,7 +94,8 @@ function deepMerge(
 // ─── Default Config Template ───────────────────────────────────────────────
 
 export const DEFAULT_CONFIG_YAML = `# Claude Agent Orchestrator Configuration
-# apiKey: "sk-ant-..."   # optional — falls back to ANTHROPIC_API_KEY env var
+# apiKey: "sk-ant-..."   # optional — falls back to ANTHROPIC_AUTH_TOKEN env var
+# baseUrl: "https://..."  # optional — falls back to ANTHROPIC_BASE_URL env var
 model: claude-opus-4-6
 maxAgents: 5
 # maxBudgetPerAgentUsd: 2.0   # optional budget cap per sub-agent
@@ -133,14 +135,17 @@ export async function loadConfig(
     overrides as Record<string, unknown>,
   );
 
-  // 4. Env var wins for apiKey
-  if (process.env.ANTHROPIC_API_KEY) {
-    merged['apiKey'] = process.env.ANTHROPIC_API_KEY;
+  // 4. Env vars win over file-based values
+  if (process.env.ANTHROPIC_AUTH_TOKEN) {
+    merged['apiKey'] = process.env.ANTHROPIC_AUTH_TOKEN;
+  }
+  if (process.env.ANTHROPIC_BASE_URL) {
+    merged['baseUrl'] = process.env.ANTHROPIC_BASE_URL;
   }
 
-  // 5. GitHub token from env
+  // 5. GitHub token from env (use || so empty string falls through to GITHUB_TOKEN)
   if (process.env.GH_TOKEN || process.env.GITHUB_TOKEN) {
-    const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+    const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
     const github = (merged['github'] as Record<string, unknown>) ?? {};
     github['token'] = token;
     merged['github'] = github;
@@ -157,7 +162,7 @@ export async function loadConfig(
 
   if (!config.apiKey) {
     throw new ConfigError(
-      'No API key found. Set the ANTHROPIC_API_KEY environment variable or add apiKey to your config file.',
+      'No API key found. Set the ANTHROPIC_AUTH_TOKEN environment variable or add apiKey to your config file.',
     );
   }
 
