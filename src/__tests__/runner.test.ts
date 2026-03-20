@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventEmitter } from 'events';
 
+const { mockRunSubAgentSDK } = vi.hoisted(() => ({
+  mockRunSubAgentSDK: vi.fn(),
+}));
+
 vi.mock('execa', () => ({ execa: vi.fn() }));
+vi.mock('../sdk-runner.js', () => ({ runSubAgentSDK: mockRunSubAgentSDK }));
 
 import { execa } from 'execa';
 import { runSubAgent } from '../runner.js';
@@ -41,6 +46,7 @@ function makeConfig(overrides: Partial<OrchestratorConfig> = {}): OrchestratorCo
     maxAgents: 5,
     workspace: { type: 'worktree' },
     tmux: true,
+    runner: 'cli',
     ...overrides,
   };
 }
@@ -563,5 +569,36 @@ describe('runSubAgent — edge cases', () => {
 
     const result = await runSubAgent(makeTask(), makeWorkspace(), makeConfig(), onOutput);
     expect(result.prUrl).toBe('https://github.com/org/repo/pull/5');
+  });
+});
+
+// ─── SDK dispatch ──────────────────────────────────────────────────────────
+
+describe('runSubAgent — SDK dispatch', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('delegates to runSubAgentSDK when runner is sdk', async () => {
+    mockRunSubAgentSDK.mockResolvedValueOnce({ prUrl: 'https://github.com/org/repo/pull/99' });
+
+    const result = await runSubAgent(
+      makeTask(),
+      makeWorkspace(),
+      makeConfig({ runner: 'sdk' }),
+      vi.fn(),
+    );
+
+    expect(mockRunSubAgentSDK).toHaveBeenCalledOnce();
+    expect(result.prUrl).toBe('https://github.com/org/repo/pull/99');
+  });
+
+  it('does not call runSubAgentSDK when runner is cli', async () => {
+    const prText = makeAssistantEvent('PR_URL: https://github.com/org/repo/pull/1\n');
+    vi.mocked(execa).mockReturnValueOnce(createMockSubprocess({ stdoutChunks: [prText] }) as any);
+
+    await runSubAgent(makeTask(), makeWorkspace(), makeConfig({ runner: 'cli' }), vi.fn());
+
+    expect(mockRunSubAgentSDK).not.toHaveBeenCalled();
   });
 });

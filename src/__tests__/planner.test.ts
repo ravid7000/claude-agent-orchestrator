@@ -37,6 +37,7 @@ function makeConfig(overrides: Partial<OrchestratorConfig> = {}): OrchestratorCo
     maxAgents: 5,
     workspace: { type: 'worktree' },
     tmux: true,
+    runner: 'cli',
     ...overrides,
   };
 }

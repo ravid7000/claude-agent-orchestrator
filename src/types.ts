@@ -6,6 +6,7 @@ export interface OrchestratorConfig {
   baseUrl?: string;
   model: string;
   timeout?: number;
+  runner: 'cli' | 'sdk';
   maxAgents: number;
   maxBudgetPerAgentUsd?: number;
   workspace: {

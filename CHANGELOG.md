@@ -1,5 +1,11 @@
 # claude-agent-orchestrator
 
+## 0.0.6
+
+### Patch Changes
+
+- Add API_TIMEOUT_MS, ANTHROPIC_AUTH_TOKEN env variables for Anthropic SDK
+
 ## 0.0.5
 
 ### Patch Changes

@@ -138,6 +138,11 @@ export class Orchestrator {
       this.config.maxAgents,
       async (state) => {
         state.status = 'running';
+        const logPath = display.getLogPath(state.task.id);
+        p.log.info(`  → ${state.task.id}: launching agent for "${state.task.title}"`);
+        if (logPath) {
+          p.log.info(`     Log: ${logPath}`);
+        }
 
         try {
           const { prUrl } = await runSubAgent(

@@ -1,51 +1,7 @@
 import { execa } from 'execa';
 import { type OrchestratorConfig, type SubTask, type Workspace, RunnerError } from './types.js';
-
-// ─── Sub-Agent Prompt ──────────────────────────────────────────────────────
-
-function buildSubAgentPrompt(task: SubTask, workspace: Workspace): string {
-  const filesHint =
-    task.files.length > 0
-      ? `Files likely to need changes: ${task.files.join(', ')}`
-      : 'Explore the codebase to identify which files need changes.';
-
-  return `You are an expert software engineer working on an isolated git branch.
-
-## Your Task
-**Title**: ${task.title}
-
-**Description**:
-${task.description}
-
-## Context
-- Branch: ${workspace.branchName}
-- ${filesHint}
-
-## Instructions
-Complete the following steps in order:
-
-1. **Explore**: Use your tools to understand the repository structure and existing code patterns.
-2. **Implement**: Make all required changes to complete your task. Follow existing code style.
-3. **Test**: Run the project's test suite if one exists (look for \`npm test\`, \`pytest\`, \`go test\`, \`cargo test\`, etc.).
-4. **Commit**: Stage and commit your changes:
-   \`\`\`
-   git add -A && git commit -m "feat: ${task.title}"
-   \`\`\`
-5. **Push**: Push your branch to the remote:
-   \`\`\`
-   git push -u origin ${workspace.branchName}
-   \`\`\`
-6. **Pull Request**: Create a PR using the gh CLI:
-   \`\`\`
-   gh pr create --title "${task.title}" --body "..."
-   \`\`\`
-   Write a clear PR body explaining what was changed and why.
-
-**Important**: When the PR is created successfully, output its URL on a line formatted exactly as:
-\`PR_URL: <url>\`
-
-Your task is complete once the PR is created.`;
-}
+import { buildSubAgentPrompt, PR_URL_PATTERN, detectPrUrl } from './agent-prompt.js';
+import { runSubAgentSDK } from './sdk-runner.js';
 
 // ─── Stream-JSON Event Types ───────────────────────────────────────────────
 
@@ -70,23 +26,6 @@ function extractTextFromEvent(event: StreamEvent): string {
     .join('');
 }
 
-const PR_URL_PATTERN = /PR_URL:\s*(https?:\/\/\S+)/i;
-
-// ─── Fallback PR URL Detection ─────────────────────────────────────────────
-
-async function detectPrUrl(workspace: Workspace): Promise<string | undefined> {
-  try {
-    const { stdout } = await execa('gh', ['pr', 'view', '--json', 'url', '-q', '.url'], {
-      cwd: workspace.path,
-    });
-    const url = stdout.trim();
-    if (url.startsWith('http')) return url;
-  } catch {
-    // no PR found
-  }
-  return undefined;
-}
-
 // ─── Main Runner ───────────────────────────────────────────────────────────
 
 export async function runSubAgent(
@@ -95,6 +34,10 @@ export async function runSubAgent(
   config: OrchestratorConfig,
   onOutput: (text: string) => void,
 ): Promise<{ prUrl: string }> {
+  if (config.runner === 'sdk') {
+    return runSubAgentSDK(task, workspace, config, onOutput);
+  }
+
   const prompt = buildSubAgentPrompt(task, workspace);
 
   const args: string[] = [
@@ -137,12 +80,21 @@ export async function runSubAgent(
     all: false,
   });
 
+  onOutput(`[${task.id}] Spawned claude CLI (pid: ${subprocess.pid ?? 'unknown'})\n`);
+  onOutput(`[${task.id}] Command: claude ${args.slice(0, 4).join(' ')} ...\n`);
+  onOutput(`[${task.id}] Working dir: ${workspace.path}\n`);
+
   // Read stdout line by line
   if (subprocess.stdout) {
     subprocess.stdout.setEncoding('utf-8');
 
     let buffer = '';
+    let firstChunk = true;
     subprocess.stdout.on('data', (chunk: string) => {
+      if (firstChunk) {
+        onOutput(`[${task.id}] First stdout data received — agent is running\n`);
+        firstChunk = false;
+      }
       buffer += chunk;
       const lines = buffer.split('\n');
       buffer = lines.pop() ?? '';  // keep incomplete last line in buffer
@@ -187,17 +139,19 @@ export async function runSubAgent(
     });
   }
 
-  // Collect stderr for error reporting
+  // Collect stderr and stream it live for debugging
   let stderrOutput = '';
   if (subprocess.stderr) {
     subprocess.stderr.setEncoding('utf-8');
     subprocess.stderr.on('data', (chunk: string) => {
       stderrOutput += chunk;
+      onOutput(`[${task.id}][stderr] ${chunk}`);
     });
   }
 
   // Wait for process to complete
   const result = await subprocess;
+  onOutput(`[${task.id}] Process exited with code ${result.exitCode ?? 'unknown'}\n`);
 
   if (resultError) {
     throw new RunnerError(
@@ -230,7 +184,6 @@ export async function runSubAgent(
   }
 
   if (!prUrl) {
-    // Soft failure — agent may have done the work but didn't output PR_URL
     onOutput(
       '\n[Warning: Could not detect PR URL. The branch was pushed but PR creation may have failed.]\n',
     );

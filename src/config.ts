@@ -13,6 +13,7 @@ const ConfigSchema = z.object({
   baseUrl: z.string().url().optional(),
   model: z.string().default('claude-opus-4-6'),
   timeout: z.number().int().positive().optional(),
+  runner: z.enum(['cli', 'sdk']).default('sdk'),
   maxAgents: z.number().int().min(1).max(20).default(5),
   maxBudgetPerAgentUsd: z.number().positive().optional(),
   workspace: z
@@ -150,6 +151,9 @@ export async function loadConfig(
   if (process.env.API_TIMEOUT_MS) {
     const ms = parseInt(process.env.API_TIMEOUT_MS, 10);
     if (!isNaN(ms) && ms > 0) merged['timeout'] = ms;
+  }
+  if (process.env.ORCHESTRATOR_RUNNER === 'cli' || process.env.ORCHESTRATOR_RUNNER === 'sdk') {
+    merged['runner'] = process.env.ORCHESTRATOR_RUNNER;
   }
 
   // 5. GitHub token from env (use || so empty string falls through to GITHUB_TOKEN)

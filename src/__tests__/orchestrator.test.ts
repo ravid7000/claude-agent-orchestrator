@@ -11,6 +11,7 @@ const {
   mockDisplayInitialize,
   mockWriteOutput,
   mockShowSummary,
+  mockGetLogPath,
   mockRunSubAgent,
 } = vi.hoisted(() => ({
   mockDecompose: vi.fn(),
@@ -21,6 +22,7 @@ const {
   mockDisplayInitialize: vi.fn(),
   mockWriteOutput: vi.fn(),
   mockShowSummary: vi.fn(),
+  mockGetLogPath: vi.fn().mockReturnValue(undefined),
   mockRunSubAgent: vi.fn(),
 }));
 
@@ -48,6 +50,7 @@ vi.mock('../display.js', () => ({
       initialize: mockDisplayInitialize,
       writeOutput: mockWriteOutput,
       showSummary: mockShowSummary,
+      getLogPath: mockGetLogPath,
     };
   }),
 }));
@@ -115,6 +118,7 @@ function makeConfig(overrides: Partial<OrchestratorConfig> = {}): OrchestratorCo
     maxAgents: 5,
     workspace: { type: 'worktree' },
     tmux: false,
+    runner: 'cli',
     ...overrides,
   };
 }

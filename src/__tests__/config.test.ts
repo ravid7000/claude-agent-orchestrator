@@ -17,6 +17,7 @@ beforeEach(() => {
   vi.stubEnv('ANTHROPIC_API_KEY', '');
   vi.stubEnv('ANTHROPIC_BASE_URL', '');
   vi.stubEnv('API_TIMEOUT_MS', '');
+  vi.stubEnv('ORCHESTRATOR_RUNNER', '');
   vi.stubEnv('GH_TOKEN', '');
   vi.stubEnv('GITHUB_TOKEN', '');
 });
@@ -86,6 +87,26 @@ describe('loadConfig', () => {
     vi.stubEnv('API_TIMEOUT_MS', 'not-a-number');
     const config = await loadConfig(tmpDir);
     expect(config.timeout).toBeUndefined();
+  });
+
+  it('defaults runner to sdk', async () => {
+    vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-test');
+    const config = await loadConfig(tmpDir);
+    expect(config.runner).toBe('sdk');
+  });
+
+  it('ORCHESTRATOR_RUNNER=cli overrides runner to cli', async () => {
+    vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-test');
+    vi.stubEnv('ORCHESTRATOR_RUNNER', 'cli');
+    const config = await loadConfig(tmpDir);
+    expect(config.runner).toBe('cli');
+  });
+
+  it('ignores unknown ORCHESTRATOR_RUNNER values', async () => {
+    vi.stubEnv('ANTHROPIC_AUTH_TOKEN', 'sk-ant-test');
+    vi.stubEnv('ORCHESTRATOR_RUNNER', 'invalid');
+    const config = await loadConfig(tmpDir);
+    expect(config.runner).toBe('sdk'); // falls back to schema default
   });
 
   it('applies default model, maxAgents, workspace type, tmux', async () => {
